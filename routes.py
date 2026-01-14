@@ -51,13 +51,15 @@ def register_routes(app):
         
         # Validate data
         if not all([name, age, screen_time, avatar_id]):
+            app.logger.warning(f"Registration failed: Missing data. name={name}, age={age}, screen_time={screen_time}, avatar_id={avatar_id}")
             return redirect(url_for('login'))
         
         try:
             age = int(age)
             screen_time = float(screen_time)
             avatar_id = int(avatar_id)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
+            app.logger.warning(f"Registration failed: Data conversion error: {e}")
             return redirect(url_for('login'))
             
         # Store user data in session
@@ -73,12 +75,15 @@ def register_routes(app):
             'study_sessions': 0,
             'total_wellness_time': 0  # Track total time spent on wellness tasks
         }
+        session.permanent = True # Ensure session persists
+        app.logger.info(f"User {name} registered successfully")
         
         return redirect(url_for('dashboard'))
 
     @app.route('/dashboard')
     def dashboard():
         if 'user' not in session:
+            app.logger.info("Dashboard access attempted without session user, redirecting to login")
             return redirect(url_for('login'))
         
         user = session['user']
