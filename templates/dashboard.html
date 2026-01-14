@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wellness Dashboard - {{ user.name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body class="dashboard-body">
+    <div class="container-fluid p-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="dashboard-header">
+                    <h1 class="pixel-title">🌿 {{ user.name }}'s WELLNESS QUEST 🌿</h1>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <!-- Left Column: Wellness Tasks & Study Timer -->
+            <div class="col-lg-4 col-md-6 mb-4">
+                <!-- Wellness Tasks -->
+                <div class="pixel-widget mb-4">
+                    <div class="widget-header">
+                        <h3>🎯 WELLNESS QUESTS</h3>
+                    </div>
+                    <div class="widget-content">
+                        {% for task in wellness_tasks %}
+                        <div class="wellness-task" data-task-id="{{ task.id }}">
+                            <div class="task-info">
+                                <h5>
+                                    {% if task.id == 1 %}📚{% elif task.id == 2 %}🧘{% elif task.id == 3 %}🚶{% elif task.id == 4 %}💧{% else %}🌬️{% endif %}
+                                    {{ task.name }}
+                                </h5>
+                                <p>{{ task.description }}</p>
+                            </div>
+                            <div class="task-controls">
+                                <input type="number" class="pixel-input-small timer-input" placeholder="min" min="1" max="120" value="5">
+                                <button class="pixel-button pixel-button-small start-task-btn">START</button>
+                                <div class="task-timer hidden">
+                                    <span class="timer-display">00:00</span>
+                                    <button class="pixel-button pixel-button-small stop-task-btn">STOP</button>
+                                </div>
+                                <div class="task-completed hidden">
+                                    <span class="completion-text">✅ COMPLETED! +5 PTS</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- Study Timer -->
+                <div class="pixel-widget">
+                    <div class="widget-header">
+                        <h3>📚 STUDY FOCUS</h3>
+                    </div>
+                    <div class="widget-content">
+                        <div class="study-timer">
+                            <div class="study-controls">
+                                <input type="number" id="study-duration" class="pixel-input-small" placeholder="min" min="1" max="240" value="25">
+                                <button id="start-study-btn" class="pixel-button pixel-button-small">START</button>
+                            </div>
+                            <div id="study-timer-display" class="study-timer-display hidden">
+                                <div class="timer-text">
+                                    <span id="study-timer-text">00:00</span>
+                                </div>
+                                <button id="stop-study-btn" class="pixel-button pixel-button-danger">STOP (-5 PTS)</button>
+                            </div>
+                            <div id="study-completed" class="study-completed hidden">
+                                <span class="completion-text">🎓 STUDY COMPLETE! +10 PTS</span>
+                                <button id="reset-study-btn" class="pixel-button pixel-button-small">NEW SESSION</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Center Column: Avatar Display -->
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="pixel-widget avatar-widget">
+                    <div class="widget-header">
+                        <h3>🐾 YOUR COMPANION</h3>
+                    </div>
+                    <div class="avatar-display">
+                        <div class="current-avatar">
+                            <div class="avatar-pixel-large avatar-{{ current_avatar.id }} animated">
+                                {% if current_avatar.id == 1 %}🦊
+                                {% elif current_avatar.id == 2 %}🐢
+                                {% elif current_avatar.id == 3 %}🐻‍❄️
+                                {% elif current_avatar.id == 4 %}🦦
+                                {% elif current_avatar.id == 5 %}🦉
+                                {% elif current_avatar.id == 6 %}🐰
+                                {% elif current_avatar.id == 7 %}🐋
+                                {% elif current_avatar.id == 8 %}🦅
+                                {% elif current_avatar.id == 9 %}🦋
+                                {% else %}🐉{% endif %}
+                            </div>
+                            <h4>{{ current_avatar.name }}</h4>
+                        </div>
+                        
+                        <!-- Avatar Collection -->
+                        <div class="avatar-collection">
+                            <h5>COLLECTION:</h5>
+                            <div class="avatar-grid-small">
+                                {% for avatar in avatars %}
+                                <div class="avatar-unlock-box" data-avatar-id="{{ avatar.id }}">
+                                    {% if avatar.id in user.unlocked_avatars %}
+                                    <div class="avatar-pixel-small avatar-{{ avatar.id }} unlocked" title="{{ avatar.name }}">
+                                        {% if avatar.id == 1 %}🦊
+                                        {% elif avatar.id == 2 %}🐢
+                                        {% elif avatar.id == 3 %}🐻‍❄️
+                                        {% elif avatar.id == 4 %}🦦
+                                        {% elif avatar.id == 5 %}🦉
+                                        {% elif avatar.id == 6 %}🐰
+                                        {% elif avatar.id == 7 %}🐋
+                                        {% elif avatar.id == 8 %}🦅
+                                        {% elif avatar.id == 9 %}🦋
+                                        {% else %}🐉{% endif %}
+                                    </div>
+                                    {% else %}
+                                    <div class="avatar-locked">
+                                        <span class="lock-icon">🔒</span>
+                                        <span class="unlock-requirement">{{ (avatar.id - 3) * 50 }} PTS</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column: Points & Stats -->
+            <div class="col-lg-4 col-md-12 mb-4">
+                <!-- Points Dashboard -->
+                <div class="pixel-widget mb-4">
+                    <div class="widget-header">
+                        <h3>💎 WELLNESS POINTS</h3>
+                    </div>
+                    <div class="widget-content">
+                        <div class="points-display">
+                            <div class="current-points">
+                                <span id="points-value">{{ user.points }}</span>
+                                <span class="points-label">POINTS</span>
+                            </div>
+                            <div class="points-breakdown">
+                                <div class="point-source">Tasks: +2 per min</div>
+                                <div class="point-source">Study: +10 each</div>
+                                <div class="point-source">App Bonus: +20</div>
+                                <div class="point-penalty">Early Stop: -5</div>
+                                <div class="unlock-info">50 pts = New Avatar</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Screen Time Stats -->
+                <div class="pixel-widget">
+                    <div class="widget-header">
+                        <h3>📱 DIGITAL STATS</h3>
+                    </div>
+                    <div class="widget-content">
+                        <div class="stat-item">
+                            <label>Daily Screen Time:</label>
+                            <span class="stat-value">{{ user.screen_time }} hours</span>
+                        </div>
+                        <div class="stat-item">
+                            <label>Most Used App:</label>
+                            <div class="most-used-app">
+                                <input type="text" id="most-used-app" class="pixel-input-small" 
+                                       placeholder="Enter app name" value="{{ user.most_used_app }}">
+                                <button id="update-app-btn" class="pixel-button pixel-button-small">UPDATE</button>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <label>Study Sessions:</label>
+                            <span class="stat-value">{{ user.study_sessions }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <label>Total Wellness Time:</label>
+                            <span class="stat-value">{{ user.get('total_wellness_time', 0) }} min</span>
+                        </div>
+                        <div class="wellness-tip">
+                            <p>💡 Try reducing screen time by 15min daily!</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Positive Affirmation Dashboard -->
+                <div class="pixel-widget">
+                    <div class="widget-header">
+                        <h3>✨ POSITIVE VIBES</h3>
+                    </div>
+                    <div class="widget-content">
+                        <div class="affirmation-display">
+                            <div class="affirmation-text-main" id="main-affirmation-text">
+                                You are capable of amazing things!
+                            </div>
+                            <button id="refresh-main-affirmation" class="pixel-button affirmation-refresh-btn" title="New Affirmation">
+                                🔄
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Animated Companion Cat Dashboard -->
+                <div class="pixel-widget cat-companion-widget mt-1">
+                    <div class="widget-header">
+                        <h3>🐱 COMPANION CAT</h3>
+                    </div>
+                    <div class="widget-content">
+                        <div class="cat-display">
+                            <div class="pixel-cat" id="pixel-cat">
+                                🐱
+                            </div>
+                            <div class="cat-message-container">
+                                <div class="cat-message" id="cat-message">
+                                    touch some grass
+                                </div>
+                                <button id="refresh-cat-message" class="pixel-button cat-refresh-btn" title="New Message">
+                                    🔄
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Floating Affirmation Dashboard -->
+    <div id="affirmation-dashboard" class="affirmation-float">
+        <div class="affirmation-content">
+            <div class="affirmation-text" id="affirmation-text">
+                You are capable of amazing things!
+            </div>
+            <button id="refresh-affirmation" class="affirmation-refresh-btn" title="New Affirmation">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

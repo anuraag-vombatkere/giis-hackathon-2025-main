@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Wellness - Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body class="login-body">
+    <div class="container-fluid h-100">
+        <div class="row justify-content-center align-items-center h-100">
+            <div class="col-lg-6 col-md-8 col-sm-10">
+                <div class="pixel-dashboard">
+                    <div class="dashboard-header">
+                        <h1 class="pixel-title">🌲 PIXEL WELLNESS 🌲</h1>
+                        <p class="pixel-subtitle">Your Digital Wellness Adventure Begins</p>
+                    </div>
+                    
+                    <form action="{{ url_for('register') }}" method="POST" class="pixel-form">
+                        <div class="form-section">
+                            <div class="pixel-field">
+                                <label for="name" class="pixel-label">ADVENTURER NAME:</label>
+                                <input type="text" id="name" name="name" class="pixel-input" required>
+                            </div>
+                            
+                            <div class="pixel-field">
+                                <label for="age" class="pixel-label">AGE LEVEL:</label>
+                                <input type="number" id="age" name="age" min="13" max="100" class="pixel-input" required>
+                            </div>
+                            
+                            <div class="pixel-field">
+                                <label for="screen_time" class="pixel-label">DAILY SCREEN TIME (HOURS):</label>
+                                <input type="number" id="screen_time" name="screen_time" min="0" max="24" step="0.5" class="pixel-input" required>
+                            </div>
+                        </div>
+                        
+                        <div class="avatar-selection">
+                            <h3 class="pixel-label">CHOOSE YOUR COMPANION:</h3>
+                            <div class="avatar-grid">
+                                {% for avatar in avatars[:3] %}
+                                <div class="avatar-option">
+                                    <input type="radio" id="avatar_{{ avatar.id }}" name="avatar_id" value="{{ avatar.id }}" required>
+                                    <label for="avatar_{{ avatar.id }}" class="avatar-card">
+                                        <div class="avatar-pixel avatar-{{ avatar.id }}"></div>
+                                        <span class="avatar-name">{{ avatar.name }}</span>
+                                        <span class="avatar-status free">FREE</span>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="pixel-button pixel-button-primary">
+                            ▶ START ADVENTURE ◀
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Floating Affirmation Dashboard -->
+    <div id="affirmation-dashboard" class="affirmation-float">
+        <div class="affirmation-content">
+            <div class="affirmation-text" id="affirmation-text">
+                You are capable of amazing things!
+            </div>
+            <button id="refresh-affirmation" class="affirmation-refresh-btn" title="New Affirmation">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
