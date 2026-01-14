@@ -15,8 +15,9 @@ app.config['SESSION_USE_SIGNER'] = True
 app.config['SESSION_KEY_PREFIX'] = 'wellness:'
 Session(app)
 
-# Import routes
-from routes import *
+# Import and register routes after app is configured
+from routes import register_routes
+register_routes(app)
 
 if __name__ == '__main__':
     import logging

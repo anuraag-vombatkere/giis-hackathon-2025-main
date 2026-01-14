@@ -1,5 +1,4 @@
 from flask import render_template, request, redirect, url_for, session, jsonify
-from app import app
 import time
 
 # Available avatars - 3 free, 7 locked
@@ -24,50 +23,8 @@ WELLNESS_TASKS = [
     {'id': 5, 'name': 'Deep Breathing', 'description': 'Practice breathing exercises to reduce stress'}
 ]
 
-@app.route('/')
-def login():
-    return render_template('login.html', avatars=AVATARS)
-
-@app.route('/register', methods=['POST'])
-def register():
-    # Get form data
-    name = request.form.get('name')
-    age = request.form.get('age')
-    screen_time = request.form.get('screen_time')
-    avatar_id = request.form.get('avatar_id')
-    
-    # Validate data
-    if not all([name, age, screen_time, avatar_id]):
-        return redirect(url_for('login'))
-    
-    # Store user data in session
-    session['user'] = {
-        'name': name,
-        'age': int(age or 18),
-        'screen_time': float(screen_time or 0),
-        'avatar_id': int(avatar_id or 1),
-        'points': 0,
-        'unlocked_avatars': [1, 2, 3],  # First 3 avatars are free
-        'most_used_app': '',
-        'task_completions': {},
-        'study_sessions': 0,
-        'total_wellness_time': 0  # Track total time spent on wellness tasks
-    }
-    
-    return redirect(url_for('dashboard'))
-
-@app.route('/dashboard')
-def dashboard():
-    if 'user' not in session:
-        return redirect(url_for('login'))
-    
-    user = session['user']
-    
-    # Ensure total_wellness_time exists for backward compatibility
-    if 'total_wellness_time' not in user:
-        user['total_wellness_time'] = 0
-    
-    # Update unlocked avatars based on points (every 50 points unlocks a new avatar)
+def update_user_state(user):
+    """Update unlocked avatars and other state based on points."""
     points = user.get('points', 0)
     unlocked = [1, 2, 3]  # Always unlocked
     # Calculate how many avatars should be unlocked (every 50 points)
@@ -77,105 +34,175 @@ def dashboard():
             unlocked.append(i + 4)
     
     user['unlocked_avatars'] = unlocked
-    session['user'] = user
-    
-    # Get current avatar
-    current_avatar = next((a for a in AVATARS if a['id'] == user['avatar_id']), AVATARS[0])
-    
-    return render_template('dashboard.html', 
-                         user=user, 
-                         avatars=AVATARS, 
-                         current_avatar=current_avatar,
-                         wellness_tasks=WELLNESS_TASKS)
+    return user
 
-@app.route('/complete_task', methods=['POST'])
-def complete_task():
-    if 'user' not in session:
-        return jsonify({'error': 'Not logged in'}), 401
-    
-    task_id = request.json.get('task_id') or 1
-    duration = request.json.get('duration') or 0
-    
-    user = session['user']
-    # New point system: 2 points per minute
-    points_earned = duration * 2
-    user['points'] += points_earned
-    user['total_wellness_time'] += duration
-    
-    # Track task completion
-    task_key = f"task_{task_id}"
-    if task_key not in user['task_completions']:
-        user['task_completions'][task_key] = 0
-    user['task_completions'][task_key] += 1
-    
-    session['user'] = user
-    
-    return jsonify({
-        'success': True, 
-        'points': user['points'],
-        'points_earned': points_earned,
-        'total_wellness_time': user['total_wellness_time']
-    })
+def register_routes(app):
+    @app.route('/')
+    def login():
+        return render_template('login.html', avatars=AVATARS)
 
-@app.route('/complete_study', methods=['POST'])
-def complete_study():
-    if 'user' not in session:
-        return jsonify({'error': 'Not logged in'}), 401
-    
-    duration = request.json.get('duration') or 0
-    
-    user = session['user']
-    user['points'] += 10
-    user['study_sessions'] += 1
-    
-    session['user'] = user
-    
-    return jsonify({'success': True, 'points': user['points']})
+    @app.route('/register', methods=['POST'])
+    def register():
+        # Get form data
+        name = request.form.get('name')
+        age = request.form.get('age')
+        screen_time = request.form.get('screen_time')
+        avatar_id = request.form.get('avatar_id')
+        
+        # Validate data
+        if not all([name, age, screen_time, avatar_id]):
+            return redirect(url_for('login'))
+        
+        try:
+            age = int(age)
+            screen_time = float(screen_time)
+            avatar_id = int(avatar_id)
+        except (ValueError, TypeError):
+            return redirect(url_for('login'))
+            
+        # Store user data in session
+        session['user'] = {
+            'name': name,
+            'age': age,
+            'screen_time': screen_time,
+            'avatar_id': avatar_id,
+            'points': 0,
+            'unlocked_avatars': [1, 2, 3],  # First 3 avatars are free
+            'most_used_app': '',
+            'task_completions': {},
+            'study_sessions': 0,
+            'total_wellness_time': 0  # Track total time spent on wellness tasks
+        }
+        
+        return redirect(url_for('dashboard'))
 
-@app.route('/stop_study', methods=['POST'])
-def stop_study():
-    if 'user' not in session:
-        return jsonify({'error': 'Not logged in'}), 401
-    
-    user = session['user']
-    # Subtract 5 points for stopping early
-    user['points'] = max(0, user['points'] - 5)
-    
-    session['user'] = user
-    
-    return jsonify({'success': True, 'points': user['points']})
-
-@app.route('/update_most_used_app', methods=['POST'])
-def update_most_used_app():
-    if 'user' not in session:
-        return jsonify({'error': 'Not logged in'}), 401
-    
-    app_name = request.json.get('app_name') or ''
-    
-    user = session['user']
-    user['most_used_app'] = app_name
-    
-    # Bonus points if they select this wellness app
-    if app_name.lower() in ['wellness app', 'this app', 'this one']:
-        user['points'] += 20
-    
-    session['user'] = user
-    
-    return jsonify({'success': True, 'points': user['points']})
-
-@app.route('/change_avatar', methods=['POST'])
-def change_avatar():
-    if 'user' not in session:
-        return jsonify({'error': 'Not logged in'}), 401
-    
-    avatar_id = request.json.get('avatar_id') or 1
-    
-    user = session['user']
-    
-    # Check if avatar is unlocked
-    if avatar_id in user.get('unlocked_avatars', []):
-        user['avatar_id'] = avatar_id
+    @app.route('/dashboard')
+    def dashboard():
+        if 'user' not in session:
+            return redirect(url_for('login'))
+        
+        user = session['user']
+        
+        # Ensure total_wellness_time exists for backward compatibility
+        if 'total_wellness_time' not in user:
+            user['total_wellness_time'] = 0
+        
+        user = update_user_state(user)
         session['user'] = user
-        return jsonify({'success': True})
-    else:
-        return jsonify({'error': 'Avatar not unlocked'}), 400
+        
+        # Get current avatar
+        current_avatar = next((a for a in AVATARS if a['id'] == user['avatar_id']), AVATARS[0])
+        
+        return render_template('dashboard.html', 
+                             user=user, 
+                             avatars=AVATARS, 
+                             current_avatar=current_avatar,
+                             wellness_tasks=WELLNESS_TASKS)
+
+    @app.route('/complete_task', methods=['POST'])
+    def complete_task():
+        if 'user' not in session:
+            return jsonify({'error': 'Not logged in'}), 401
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Invalid JSON'}), 400
+            
+        task_id = data.get('task_id') or 1
+        duration = data.get('duration') or 0
+        
+        user = session['user']
+        # New point system: 2 points per minute
+        points_earned = int(duration) * 2
+        user['points'] += points_earned
+        user['total_wellness_time'] += int(duration)
+        
+        # Track task completion
+        task_key = f"task_{task_id}"
+        if task_key not in user['task_completions']:
+            user['task_completions'][task_key] = 0
+        user['task_completions'][task_key] += 1
+        
+        user = update_user_state(user)
+        session['user'] = user
+        
+        return jsonify({
+            'success': True, 
+            'points': user['points'],
+            'points_earned': points_earned,
+            'total_wellness_time': user['total_wellness_time']
+        })
+
+    @app.route('/complete_study', methods=['POST'])
+    def complete_study():
+        if 'user' not in session:
+            return jsonify({'error': 'Not logged in'}), 401
+        
+        user = session['user']
+        user['points'] += 10
+        user['study_sessions'] += 1
+        
+        user = update_user_state(user)
+        session['user'] = user
+        
+        return jsonify({'success': True, 'points': user['points']})
+
+    @app.route('/stop_study', methods=['POST'])
+    def stop_study():
+        if 'user' not in session:
+            return jsonify({'error': 'Not logged in'}), 401
+        
+        user = session['user']
+        # Subtract 5 points for stopping early
+        user['points'] = max(0, user['points'] - 5)
+        
+        user = update_user_state(user)
+        session['user'] = user
+        
+        return jsonify({'success': True, 'points': user['points']})
+
+    @app.route('/update_most_used_app', methods=['POST'])
+    def update_most_used_app():
+        if 'user' not in session:
+            return jsonify({'error': 'Not logged in'}), 401
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Invalid JSON'}), 400
+            
+        app_name = data.get('app_name') or ''
+        
+        user = session['user']
+        user['most_used_app'] = app_name
+        
+        # Bonus points if they select this wellness app
+        if app_name.lower() in ['wellness app', 'this app', 'this one']:
+            user['points'] += 20
+        
+        user = update_user_state(user)
+        session['user'] = user
+        
+        return jsonify({'success': True, 'points': user['points']})
+
+    @app.route('/change_avatar', methods=['POST'])
+    def change_avatar():
+        if 'user' not in session:
+            return jsonify({'error': 'Not logged in'}), 401
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Invalid JSON'}), 400
+            
+        avatar_id = data.get('avatar_id')
+        if avatar_id is None:
+            return jsonify({'error': 'Missing avatar_id'}), 400
+            
+        user = session['user']
+        
+        # Check if avatar is unlocked
+        if int(avatar_id) in user.get('unlocked_avatars', []):
+            user['avatar_id'] = int(avatar_id)
+            session['user'] = user
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Avatar not unlocked'}), 400
